@@ -10,6 +10,7 @@ const PostSchema = new Schema(
     blogContents: { type: String, required: true },
     topics: [{ type: String }],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
+    isPublished: { type: Boolean, required: true },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
