@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { body, validationResult, checkSchema } from "express-validator";
 import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
+import { isValidObjectId } from "mongoose";
 import User from "../../models/User";
 
 const router = Router();
@@ -110,5 +111,22 @@ router.post("/register", [
     res.json(token);
   }),
 ]);
+
+router.get(
+  "/:userId",
+  asyncHandler(async (req, res, next) => {
+    if (!isValidObjectId(req.params.userId)) {
+      return res.status(400).send({ message: "Invalid user id" });
+    }
+
+    const user = await User.findById(req.params.userId).exec();
+
+    if (!user) {
+      return res.status(400).send({ message: "User not found" });
+    }
+
+    return res.json(user);
+  })
+);
 
 export default router;
