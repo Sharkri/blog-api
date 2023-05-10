@@ -23,7 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 app.use("/api/posts", postsRoute);
-app.use("/api/user", userRoute);
+app.use("/api/users", userRoute);
 app.use("/api/comments", commentsRoute);
 
 app.get("/", (req, res) => {
