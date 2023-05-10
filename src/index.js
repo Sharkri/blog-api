@@ -3,6 +3,10 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 
+import postsRoute from "./routes/posts";
+import userRoute from "./routes/user";
+import commentsRoute from "./routes/comments";
+
 mongoose.connect(process.env.DATABASE_URI, {
   useUnifiedTopology: true,
   useNewUrlParser: true,
@@ -18,10 +22,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
+app.use("/api/posts", postsRoute);
+app.use("/api/user", userRoute);
+app.use("/api/comments", commentsRoute);
+
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
 app.listen(process.env.PORT, () =>
-  console.log(`Example app listening on port ${process.env.PORT}!`)
+  console.log(`Listening on port ${process.env.PORT}!`)
 );
