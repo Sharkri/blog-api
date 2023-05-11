@@ -6,6 +6,7 @@ import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
 import { isValidObjectId } from "mongoose";
 import User from "../models/User";
+import Img from "../models/Image";
 
 const router = Router();
 
@@ -87,28 +88,35 @@ router.post("/register", [
     const errors = validationResult(req);
 
     const { email, displayName, password } = req.body;
-    const pfp = req.file;
 
     // if there are any errors
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
+      return res.status(400).json({ errors: errors.array() });
     }
+
+    const pfp = req.file
+      ? new Img({
+          image: { data: req.file.buffer, contentType: req.file.mimetype },
+        })
+      : undefined;
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = new User({
       email,
       displayName,
       password: hashedPassword,
-      pfp: pfp
-        ? { data: req.file.buffer, contentType: req.file.mimetype }
-        : undefined,
+      pfp: pfp?.id,
     });
 
-    await user.save();
+    // since order does not matter, do all at once.
+    const [token] = await Promise.all([
+      signToken({ user }),
+      pfp?.save(),
+      user.save(),
+    ]);
 
-    const token = await signToken({ user });
-    res.json(token);
+    return res.json(token);
   }),
 ]);
 
