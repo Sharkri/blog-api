@@ -8,9 +8,17 @@ const PostSchema = new Schema(
     title: { type: String, required: true },
     description: { type: String, required: true },
     blogContents: { type: String, required: true },
-    topics: [{ type: String }],
+    topics: [
+      {
+        type: String,
+        validate: {
+          validator: (val) => val.length <= 5,
+          message: "Topics array exceeds the limit of 5",
+        },
+      },
+    ],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
-    isPublished: { type: Boolean, required: true },
+    isPublished: { type: Boolean, default: "false" },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
