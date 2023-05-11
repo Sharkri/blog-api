@@ -5,7 +5,7 @@ import { body, validationResult, checkSchema } from "express-validator";
 import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
 import { isValidObjectId } from "mongoose";
-import User from "../../models/User";
+import User from "../models/User";
 
 const router = Router();
 
