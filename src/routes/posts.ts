@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import { body, validationResult } from "express-validator";
 import { verifyToken } from "../helper/token";
 
@@ -27,10 +27,10 @@ router.post("/create", [
     .withMessage("Topics must be an array")
     .custom((topics) => topics.length <= 5)
     .withMessage("Maximum 5 topics")
-    .custom((topics) => topics.every((topic) => typeof topic === "string"))
+    .custom((topics) => topics.every((topic: any) => typeof topic === "string"))
     .withMessage("All topics must be strings"),
 
-  (req, res) => {
+  (req: Request, res: Response) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {

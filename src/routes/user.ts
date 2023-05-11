@@ -1,12 +1,12 @@
-import { Router } from "express";
-import jwt from "jsonwebtoken";
+import { Request, Router } from "express";
 import bcrypt from "bcrypt";
 import { body, validationResult, checkSchema } from "express-validator";
 import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
 import { isValidObjectId } from "mongoose";
-import User from "../models/User";
+import UserModel from "../models/User";
 import Img from "../models/Image";
+import { signToken } from "../helper/token";
 
 const router = Router();
 
@@ -18,7 +18,7 @@ const upload = multer({
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      const error = new MulterError(400, "pfp");
+      const error = new MulterError("LIMIT_UNEXPECTED_FILE", "pfp");
       error.message = "File format should be an image";
 
       cb(error);
@@ -26,32 +26,16 @@ const upload = multer({
   },
 });
 
-const signToken = async (payload) =>
-  new Promise((resolve, reject) => {
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN },
-      (err, token) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(token);
-        }
-      }
-    );
-  });
-
 const uploadPfp = upload.single("pfp");
 
 router.post("/register", [
   // upload pfp using multer
-  asyncHandler((req, res, next) => {
+  asyncHandler((req: Request, res, next) => {
     uploadPfp(req, res, async (err) => {
-      // Map multer errors to express-validator errors
+      // Map multer error to express-validator error
       if (err instanceof MulterError) {
         await checkSchema({
-          [err.field]: {
+          pfp: {
             custom: { errorMessage: err.message },
           },
         }).run(req);
@@ -69,7 +53,7 @@ router.post("/register", [
     .isEmail()
     .withMessage("Invalid email")
     .custom(async (email) => {
-      const emailTaken = await User.exists({ email }).exec();
+      const emailTaken = await UserModel.exists({ email }).exec();
       if (emailTaken) return Promise.reject();
 
       return true;
@@ -91,7 +75,8 @@ router.post("/register", [
 
     // if there are any errors
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      res.status(400).json({ errors: errors.array() });
+      return;
     }
 
     const pfp = req.file
@@ -102,7 +87,7 @@ router.post("/register", [
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new User({
+    const user = new UserModel({
       email,
       displayName,
       password: hashedPassword,
@@ -116,7 +101,7 @@ router.post("/register", [
       user.save(),
     ]);
 
-    return res.json(token);
+    res.json(token);
   }),
 ]);
 
@@ -130,7 +115,7 @@ router.post(
       .withMessage("Invalid email")
       // check if user exists
       .custom(async (email, { req }) => {
-        const user = await User.findOne({ email }).exec();
+        const user = await UserModel.findOne({ email }).exec();
 
         if (!user) return Promise.reject();
         // user exists, set req.user = user
@@ -139,6 +124,7 @@ router.post(
         return true;
       })
       .withMessage("User with the specified email does not exist."),
+    // check if correct password entered
     body("password")
       .custom(async (password, { req }) => {
         // since no user found, we already know the password is invalid
@@ -167,16 +153,17 @@ router.get(
   "/:userId",
   asyncHandler(async (req, res) => {
     if (!isValidObjectId(req.params.userId)) {
-      return res.status(400).send({ message: "Invalid user id" });
+      res.status(400).send({ message: "Invalid user id" });
+      return;
     }
 
-    const user = await User.findById(req.params.userId).exec();
+    const user = await UserModel.findById(req.params.userId).exec();
 
     if (!user) {
-      return res.status(400).send({ message: "User not found" });
+      res.status(400).send({ message: "User not found" });
+    } else {
+      res.json(user);
     }
-
-    return res.json(user);
   })
 );
 

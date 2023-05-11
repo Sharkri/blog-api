@@ -1,8 +1,13 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 
-const { Schema } = mongoose;
+interface User {
+  email: string;
+  password: string;
+  displayName: string;
+  pfp: Types.ObjectId;
+}
 
-const UserSchema = new Schema({
+const UserSchema = new Schema<User>({
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true },
   displayName: { type: String, required: true },
@@ -10,3 +15,4 @@ const UserSchema = new Schema({
 });
 
 export default mongoose.model("User", UserSchema);
+export { User };

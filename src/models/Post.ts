@@ -1,10 +1,21 @@
-import mongoose from "mongoose";
+import mongoose, { Date, Types } from "mongoose";
 
 const { Schema } = mongoose;
 
-const PostSchema = new Schema(
+interface Post {
+  author: Types.ObjectId;
+  title: string;
+  description: string;
+  blogContents: string;
+  topics?: string[];
+  comments?: Types.ObjectId[];
+  isPublished?: boolean;
+  createdAt: Date;
+}
+
+const PostSchema = new Schema<Post>(
   {
-    author: { type: Schema.Types.ObjectId, ref: "User" },
+    author: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true },
     description: { type: String, required: true },
     blogContents: { type: String, required: true },
@@ -12,7 +23,7 @@ const PostSchema = new Schema(
       {
         type: String,
         validate: {
-          validator: (val) => val.length <= 5,
+          validator: (val: string[]) => val.length <= 5,
           message: "Topics array exceeds the limit of 5",
         },
       },

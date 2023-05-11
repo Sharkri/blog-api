@@ -7,10 +7,7 @@ import postsRoute from "./routes/posts";
 import userRoute from "./routes/user";
 import commentsRoute from "./routes/comments";
 
-mongoose.connect(process.env.DATABASE_URI, {
-  useUnifiedTopology: true,
-  useNewUrlParser: true,
-});
+mongoose.connect(process.env.DATABASE_URI || "your_db_uri");
 mongoose.connection.on(
   "error",
   console.error.bind(console, "mongo connection error")
