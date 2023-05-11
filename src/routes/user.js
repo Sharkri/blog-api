@@ -112,9 +112,52 @@ router.post("/register", [
   }),
 ]);
 
+router.post(
+  "/login",
+
+  [
+    body("email")
+      .toLowerCase()
+      .isEmail()
+      .withMessage("Invalid email")
+      // check if user exists
+      .custom(async (email, { req }) => {
+        const user = await User.findOne({ email }).exec();
+
+        if (!user) return Promise.reject();
+        // user exists, set req.user = user
+        req.user = user;
+
+        return true;
+      })
+      .withMessage("User with the specified email does not exist."),
+    body("password")
+      .custom(async (password, { req }) => {
+        // since no user found, we already know the password is invalid
+        if (!req.user) return true;
+
+        const isSamePass = await bcrypt.compare(password, req.user.password);
+        if (!isSamePass) return Promise.reject();
+        return true;
+      })
+      .withMessage("Incorrect password"),
+
+    asyncHandler(async (req, res) => {
+      const errors = validationResult(req);
+
+      if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+      } else {
+        const token = await signToken({ user: req.user });
+        res.json(token);
+      }
+    }),
+  ]
+);
+
 router.get(
   "/:userId",
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     if (!isValidObjectId(req.params.userId)) {
       return res.status(400).send({ message: "Invalid user id" });
     }
