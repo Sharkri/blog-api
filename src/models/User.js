@@ -6,7 +6,7 @@ const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true },
   displayName: { type: String, required: true },
-  pfp: { data: Buffer, contentType: String },
+  pfp: { type: Schema.Types.ObjectId, ref: "Image" },
 });
 
 export default mongoose.model("User", UserSchema);
