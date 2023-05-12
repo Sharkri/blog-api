@@ -1,12 +1,16 @@
-import { Request, Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import bcrypt from "bcrypt";
-import { body, validationResult, checkSchema } from "express-validator";
+import { validationResult, checkSchema } from "express-validator";
 import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
 import { isValidObjectId } from "mongoose";
 import UserModel, { User } from "../models/User";
 import Img from "../models/Image";
 import { signToken } from "../helper/token";
+import {
+  getLoginValidationAndUser,
+  getUserRegisterValidation,
+} from "./validators";
 
 const router = Router();
 
@@ -26,47 +30,31 @@ const upload = multer({
   },
 });
 
-const uploadPfp = upload.single("pfp");
+// uploads pfp using multer and handles multer errors
+async function uploadPfp(req: Request, res: Response, next: NextFunction) {
+  const uploadFn = upload.single("pfp");
+
+  uploadFn(req, res, async (err) => {
+    if (!(err instanceof MulterError)) {
+      next(err);
+      return;
+    }
+
+    // Map multer error to express-validator error
+    await checkSchema({
+      pfp: {
+        custom: { errorMessage: err.message },
+      },
+    }).run(req);
+    next();
+  });
+}
 
 router.post("/register", [
-  // upload pfp using multer
-  asyncHandler((req: Request, res, next) => {
-    uploadPfp(req, res, async (err) => {
-      // Map multer error to express-validator error
-      if (err instanceof MulterError) {
-        await checkSchema({
-          pfp: {
-            custom: { errorMessage: err.message },
-          },
-        }).run(req);
+  // upload pfp
+  uploadPfp,
 
-        next();
-      } else {
-        // unknown error
-        next(err);
-      }
-    });
-  }),
-
-  body("email")
-    .toLowerCase()
-    .isEmail()
-    .withMessage("Invalid email")
-    .custom(async (email) => {
-      const emailTaken = await UserModel.exists({ email }).exec();
-      if (emailTaken) return Promise.reject();
-
-      return true;
-    })
-    .withMessage("Email is already taken"),
-  body("password")
-    .isString()
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters"),
-  body("displayName")
-    .isString()
-    .isLength({ min: 1 })
-    .withMessage("Display name is required"),
+  ...getUserRegisterValidation(),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
@@ -109,32 +97,7 @@ router.post(
   "/login",
 
   [
-    body("email")
-      .toLowerCase()
-      .isEmail()
-      .withMessage("Invalid email")
-      // check if user exists
-      .custom(async (email, { req }) => {
-        const user = await UserModel.findOne({ email }).exec();
-
-        if (!user) return Promise.reject();
-        // user exists, set req.user = user
-        req.user = user;
-
-        return true;
-      })
-      .withMessage("User with the specified email does not exist."),
-    // check if correct password entered
-    body("password")
-      .custom(async (password, { req }) => {
-        // since no user found, we already know the password is invalid
-        if (!req.user) return true;
-
-        const isSamePass = await bcrypt.compare(password, req.user.password);
-        if (!isSamePass) return Promise.reject();
-        return true;
-      })
-      .withMessage("Incorrect password"),
+    ...getLoginValidationAndUser(),
 
     asyncHandler(async (req, res) => {
       const errors = validationResult(req);
