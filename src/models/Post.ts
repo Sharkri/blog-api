@@ -1,4 +1,4 @@
-import mongoose, { Date, Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 const { Schema } = mongoose;
 
@@ -10,7 +10,6 @@ interface Post {
   topics?: string[];
   comments?: Types.ObjectId[];
   isPublished?: boolean;
-  createdAt: Date;
 }
 
 const PostSchema = new Schema<Post>(
@@ -19,15 +18,13 @@ const PostSchema = new Schema<Post>(
     title: { type: String, required: true },
     description: { type: String, required: true },
     blogContents: { type: String, required: true },
-    topics: [
-      {
-        type: String,
-        validate: {
-          validator: (val: string[]) => val.length <= 5,
-          message: "Topics array exceeds the limit of 5",
-        },
-      },
-    ],
+    topics: {
+      type: [{ type: String }],
+      validate: [
+        (val: string[]) => val.length <= 5,
+        "Topics array exceeds the limit of 5",
+      ],
+    },
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
     isPublished: { type: Boolean, default: "false" },
   },

@@ -1,13 +1,15 @@
 import { Request, Response, Router } from "express";
+import asyncHandler from "express-async-handler";
 import { body, validationResult } from "express-validator";
-import { verifyToken } from "../helper/token";
+import { verifyTokenAndGetUser } from "../helper/token";
+import Post from "../models/Post";
 
 const router = Router();
 
 router.get("/", (req, res) => res.send("NOT IMPLEMENTED YET"));
 
 router.post("/create", [
-  verifyToken,
+  verifyTokenAndGetUser,
 
   body("title")
     .isString()
@@ -29,16 +31,32 @@ router.post("/create", [
     .withMessage("Maximum 5 topics")
     .custom((topics) => topics.every((topic: any) => typeof topic === "string"))
     .withMessage("All topics must be strings"),
+  body("isPublished")
+    .optional()
+    .isBoolean()
+    .withMessage("isPublished must be a boolean"),
 
-  (req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const errors = validationResult(req);
-
     if (!errors.isEmpty()) {
       res.status(400).json({ errors: errors.array() });
-    } else {
-      res.send("TODO: Do stuff");
+      return;
     }
-  },
+
+    const { title, description, blogContents, topics } = req.body;
+
+    const post = new Post({
+      // eslint-disable-next-line no-underscore-dangle
+      author: req.user._id,
+      title,
+      description,
+      blogContents,
+      topics,
+    });
+
+    await post.save();
+    res.json(post);
+  }),
 ]);
 
 export default router;
