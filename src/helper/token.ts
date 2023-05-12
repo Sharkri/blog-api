@@ -1,8 +1,12 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { VerifyErrors } from "jsonwebtoken";
-import { User } from "../models/User";
 
-function verifyToken(req: Request, res: Response, next: NextFunction) {
+// Verifies token and then sets req.user to the user
+function verifyTokenAndGetUser(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT secret not found in .env file");
   }
@@ -30,7 +34,7 @@ function verifyToken(req: Request, res: Response, next: NextFunction) {
         return;
       }
       // Set the user object
-      req.user = userData as User;
+      req.user = userData;
       next();
     }
   );
@@ -47,13 +51,10 @@ const signToken = async (payload: object) =>
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "1h" },
       (err, token) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(token);
-        }
+        if (err) reject(err);
+        else resolve(token);
       }
     );
   });
 
-export { verifyToken, signToken };
+export { verifyTokenAndGetUser, signToken };

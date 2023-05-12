@@ -4,7 +4,7 @@ import { body, validationResult, checkSchema } from "express-validator";
 import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
 import { isValidObjectId } from "mongoose";
-import UserModel from "../models/User";
+import UserModel, { User } from "../models/User";
 import Img from "../models/Image";
 import { signToken } from "../helper/token";
 
@@ -87,7 +87,7 @@ router.post("/register", [
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new UserModel({
+    const user = new UserModel<User>({
       email,
       displayName,
       password: hashedPassword,
@@ -96,7 +96,7 @@ router.post("/register", [
 
     // since order does not matter, do all at once.
     const [token] = await Promise.all([
-      signToken({ user }),
+      signToken(user.toJSON()),
       pfp?.save(),
       user.save(),
     ]);
@@ -142,7 +142,7 @@ router.post(
       if (!errors.isEmpty()) {
         res.status(400).json({ errors: errors.array() });
       } else {
-        const token = await signToken({ user: req.user });
+        const token = await signToken(req.user.toJSON());
         res.json(token);
       }
     }),
