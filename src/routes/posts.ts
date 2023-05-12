@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
 import asyncHandler from "express-async-handler";
 import { validationResult } from "express-validator";
-import { isValidObjectId } from "mongoose";
+import { Document, isValidObjectId } from "mongoose";
 import { verifyTokenAndGetUser } from "../helper/token";
 import Post, { IPost } from "../models/Post";
 import { getPostValidation } from "./validators";
@@ -68,26 +68,25 @@ router.post(
       return;
     }
 
-    const post = await Post.findById<IPost>(postId, "author").exec();
+    const post = await Post.findById<IPost & Document>(postId, "author").exec();
 
-    if (post == null) res.status(404).send("Post not found");
+    if (post == null) res.status(404).send("404: Post not found");
     else if (!post.author.equals(req.user._id)) res.sendStatus(403);
     else {
       const { title, description, blogContents, topics, isPublished } =
         req.body;
 
-      const updatedPost = new Post<IPost>({
+      post.set({
         author: req.user._id,
         title,
         description,
         blogContents,
         topics,
         isPublished,
-        _id: post._id, // required or else post will be assigned a new _id
       });
 
-      await Post.findByIdAndUpdate(postId, updatedPost).exec();
-      res.json(updatedPost);
+      await post.save();
+      res.json(post);
     }
   })
 );
