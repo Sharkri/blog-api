@@ -56,7 +56,7 @@ router.post("/register", [
 
   ...getUserRegisterValidation(),
 
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const errors = validationResult(req);
 
     const { email, displayName, password } = req.body;

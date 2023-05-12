@@ -1,15 +1,16 @@
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
 interface Post {
-  author: Types.ObjectId;
+  author: mongoose.Types.ObjectId;
   title: string;
   description: string;
   blogContents: string;
   topics?: string[];
-  comments?: Types.ObjectId[];
+  comments?: mongoose.Types.ObjectId[];
   isPublished?: boolean;
+  _id: mongoose.Types.ObjectId;
 }
 
 const PostSchema = new Schema<Post>(
@@ -36,3 +37,4 @@ PostSchema.virtual("url").get(function getPostUrl() {
 });
 
 export default mongoose.model("Post", PostSchema);
+export { Post as IPost };
