@@ -30,29 +30,28 @@ const upload = multer({
   },
 });
 
-// uploads pfp using multer and handles multer errors
-async function uploadPfp(req: Request, res: Response, next: NextFunction) {
-  const uploadFn = upload.single("pfp");
-
-  uploadFn(req, res, async (err) => {
-    if (!(err instanceof MulterError)) {
-      next(err);
-      return;
-    }
-
-    // Map multer error to express-validator error
-    await checkSchema({
-      pfp: {
-        custom: { errorMessage: err.message },
-      },
-    }).run(req);
-    next();
-  });
-}
+// --- REGISTER USER ROUTE --- //
 
 router.post("/register", [
-  // upload pfp
-  uploadPfp,
+  // upload pfp using multer and handle errors if present
+  async function uploadPfp(req: Request, res: Response, next: NextFunction) {
+    const uploadFn = upload.single("pfp");
+
+    uploadFn(req, res, async (err) => {
+      if (!(err instanceof MulterError)) {
+        next(err);
+        return;
+      }
+
+      // Map multer error to express-validator error
+      await checkSchema({
+        pfp: {
+          custom: { errorMessage: err.message },
+        },
+      }).run(req);
+      next();
+    });
+  },
 
   ...getUserRegisterValidation(),
 
@@ -93,6 +92,8 @@ router.post("/register", [
   }),
 ]);
 
+// --- LOGIN ROUTE --- //
+
 router.post(
   "/login",
 
@@ -111,6 +112,8 @@ router.post(
     }),
   ]
 );
+
+// --- GET USER BY ID ROUTE --- //
 
 router.get(
   "/:userId",

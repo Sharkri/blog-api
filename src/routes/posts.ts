@@ -10,6 +10,8 @@ const router = Router();
 
 router.get("/", (req, res) => res.send("NOT IMPLEMENTED YET"));
 
+// --- CREATE POST ROUTE --- //
+
 router.post("/create", [
   verifyTokenAndGetUser,
 
@@ -36,17 +38,7 @@ router.post("/create", [
   }),
 ]);
 
-router.get(
-  "/:postId",
-  asyncHandler(async (req: Request, res: Response) => {
-    if (!isValidObjectId(req.params.postId)) {
-      res.status(400).send("Invalid post id");
-    } else {
-      const post = await Post.findById(req.params.postId).exec();
-      res.json(post);
-    }
-  })
-);
+// --- EDIT POST ROUTE --- //
 
 router.post(
   "/:postId/edit",
@@ -93,6 +85,8 @@ router.post(
   })
 );
 
+// --- DELETE POST ROUTE --- //
+
 router.post(
   "/:postId/delete",
   // checks that jwt token is authenticated and sets req.user
@@ -134,6 +128,20 @@ router.post(
 
       await Post.findByIdAndUpdate(postId, updatedPost).exec();
       res.json(updatedPost);
+    }
+  })
+);
+
+// --- GET POST ROUTE --- //
+
+router.get(
+  "/:postId",
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!isValidObjectId(req.params.postId)) {
+      res.status(400).send("Invalid post id");
+    } else {
+      const post = await Post.findById(req.params.postId).exec();
+      res.json(post);
     }
   })
 );
