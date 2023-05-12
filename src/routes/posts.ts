@@ -8,7 +8,14 @@ import { getPostValidation } from "./validators";
 
 const router = Router();
 
-router.get("/", (req, res) => res.send("NOT IMPLEMENTED YET"));
+router.get(
+  "/",
+  asyncHandler(async (req: Request, res: Response) => {
+    // possibly can use pagination/infinite scrolling in the future
+    const posts = await Post.find().populate("author").exec();
+    res.json(posts);
+  })
+);
 
 // --- CREATE POST ROUTE --- //
 
