@@ -37,7 +37,7 @@ router.get(
 
 // --- CREATE POST ROUTE --- //
 
-router.post("/create", [
+router.post("/", [
   verifyTokenAndGetUser,
 
   // upload pfp using multer and handle errors if present
@@ -84,13 +84,75 @@ router.post("/create", [
   }),
 ]);
 
-// --- EDIT POST ROUTE --- //
+// --- CREATE COMMENT ROUTE --- //
 
 router.post(
-  "/:postId/edit",
+  "/:postId/comments",
+  ...validateCommentBody(),
+  asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+
+    if (!isValidObjectId(postId)) {
+      res.status(400).send("Invalid post id");
+      return;
+    }
+
+    const post = await Post.findById<IPost & Document>(postId).exec();
+
+    if (!post) res.sendStatus(404);
+    else {
+      const comment = new Comment<IComment>({
+        name: req.body.name,
+        text: req.body.text,
+      });
+
+      post.comments.push(comment.id);
+      await Promise.all([comment.save(), post.save()]);
+      res.json(comment);
+    }
+  })
+);
+
+// --- CREATE REPLY ROUTE --- //
+
+router.post(
+  "/:postId/comments/:commentId/replies",
+  ...validateCommentBody(),
+
+  asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
+
+    if (!isValidObjectId(commentId)) {
+      res.status(400).send("Invalid post id");
+      return;
+    }
+
+    const comment = await Comment.findById<IComment & Document>(
+      commentId
+    ).exec();
+
+    if (!comment) res.sendStatus(404);
+    else {
+      const reply = new Comment<IComment>({
+        name: req.body.name,
+        text: req.body.text,
+      });
+
+      if (!comment.replies) comment.replies = [];
+      comment.replies.push(reply.id);
+
+      await Promise.all([comment.save(), reply.save()]);
+      res.json(reply);
+    }
+  })
+);
+
+// --- EDIT POST ROUTE --- //
+
+router.put(
+  "/:postId",
   // checks that jwt token is authenticated and sets req.user
   verifyTokenAndGetUser,
-
   ...validatePostBody(),
 
   asyncHandler(async (req, res) => {
@@ -127,7 +189,7 @@ router.post(
 // --- DELETE POST ROUTE --- //
 
 router.delete(
-  "/:postId/delete",
+  "/:postId",
   verifyTokenAndGetUser,
 
   asyncHandler(async (req, res) => {
@@ -141,67 +203,6 @@ router.delete(
     else {
       await Post.findByIdAndDelete(postId).exec();
       res.json(post);
-    }
-  })
-);
-
-// --- CREATE COMMENT ROUTE --- //
-
-router.post(
-  "/:postId/comments",
-  ...validateCommentBody(),
-  asyncHandler(async (req, res) => {
-    const { postId } = req.params;
-
-    if (!isValidObjectId(postId)) {
-      res.status(400).send("Invalid post id");
-      return;
-    }
-
-    const post = await Post.findById<IPost & Document>(postId).exec();
-
-    if (!post) res.sendStatus(404);
-    else {
-      const comment = new Comment<IComment>({
-        name: req.body.name,
-        text: req.body.text,
-      });
-
-      post.comments.push(comment.id);
-      await Promise.all([comment.save(), post.save()]);
-      res.json(comment);
-    }
-  })
-);
-
-router.post(
-  "/:postId/comments/:commentId/replies",
-  ...validateCommentBody(),
-
-  asyncHandler(async (req, res) => {
-    const { commentId } = req.params;
-
-    if (!isValidObjectId(commentId)) {
-      res.status(400).send("Invalid post id");
-      return;
-    }
-
-    const comment = await Comment.findById<IComment & Document>(
-      commentId
-    ).exec();
-
-    if (!comment) res.sendStatus(404);
-    else {
-      const reply = new Comment<IComment>({
-        name: req.body.name,
-        text: req.body.text,
-      });
-
-      if (!comment.replies) comment.replies = [];
-      comment.replies.push(reply.id);
-
-      await Promise.all([comment.save(), reply.save()]);
-      res.json(reply);
     }
   })
 );
