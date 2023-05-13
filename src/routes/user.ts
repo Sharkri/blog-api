@@ -67,9 +67,7 @@ router.post("/register", [
     }
 
     const pfp = req.file
-      ? new Img({
-          image: { data: req.file.buffer, contentType: req.file.mimetype },
-        })
+      ? new Img({ data: req.file.buffer, contentType: req.file.mimetype })
       : undefined;
 
     const hashedPassword = await bcrypt.hash(password, 10);

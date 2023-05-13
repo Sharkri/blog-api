@@ -10,6 +10,7 @@ interface Post {
   topics?: string[];
   comments?: mongoose.Types.ObjectId[];
   isPublished?: boolean;
+  image: mongoose.Types.ObjectId;
   _id: mongoose.Types.ObjectId;
 }
 
@@ -28,6 +29,7 @@ const PostSchema = new Schema<Post>(
     },
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
     isPublished: { type: Boolean, default: "false" },
+    image: { type: Schema.Types.ObjectId, ref: "Image" },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

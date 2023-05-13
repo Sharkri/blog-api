@@ -1,12 +1,29 @@
-import { Request, Response, Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import asyncHandler from "express-async-handler";
-import { validationResult } from "express-validator";
+import { checkSchema, validationResult } from "express-validator";
 import { Document, isValidObjectId } from "mongoose";
+import multer, { MulterError } from "multer";
 import { verifyTokenAndGetUser } from "../helper/token";
 import Post, { IPost } from "../models/Post";
 import { getPostValidation } from "./validators";
+import Img, { Image } from "../models/Image";
 
 const router = Router();
+
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5242880 }, // 5mb
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else {
+      const error = new MulterError("LIMIT_UNEXPECTED_FILE", "pfp");
+      error.message = "File format should be an image";
+      cb(error);
+    }
+  },
+});
+const uploadImg = upload.single("image");
 
 router.get(
   "/",
@@ -22,6 +39,23 @@ router.get(
 router.post("/create", [
   verifyTokenAndGetUser,
 
+  // upload pfp using multer and handle errors if present
+  async (req: Request, res: Response, next: NextFunction) => {
+    uploadImg(req, res, async (err) => {
+      // if is not a multer error
+      if (!(err instanceof MulterError)) {
+        next(err);
+        return;
+      }
+
+      // Map multer error to express-validator error
+      await checkSchema({
+        image: { custom: { errorMessage: err.message } },
+      }).run(req);
+      next();
+    });
+  },
+
   ...getPostValidation(),
 
   asyncHandler(async (req: Request, res: Response) => {
@@ -30,7 +64,16 @@ router.post("/create", [
       res.status(400).json({ errors: errors.array() });
       return;
     }
+
     const { title, description, blogContents, topics } = req.body;
+
+    let img;
+    if (req.file) {
+      img = new Img<Image>({
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+      });
+    }
 
     const post = new Post({
       author: req.user._id,
@@ -38,9 +81,10 @@ router.post("/create", [
       description,
       blogContents,
       topics,
+      image: img?.id,
     });
 
-    await post.save();
+    await Promise.all([img?.save(), post.save()]);
     res.json(post);
   }),
 ]);

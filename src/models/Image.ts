@@ -1,9 +1,9 @@
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
 interface Image {
-  data: Types.Buffer;
+  data: Buffer;
   contentType: string;
 }
 
@@ -17,3 +17,4 @@ ImageSchema.virtual("imageUrl").get(function getImageUrl() {
 });
 
 export default mongoose.model("Image", ImageSchema);
+export { Image };
