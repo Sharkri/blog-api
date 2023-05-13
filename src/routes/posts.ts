@@ -101,10 +101,8 @@ router.post(
 
     if (!post) res.sendStatus(404);
     else {
-      const comment = new Comment<IComment>({
-        name: req.body.name,
-        text: req.body.text,
-      });
+      const { name, text } = req.body;
+      const comment = new Comment<IComment>({ name, text });
 
       post.comments.push(comment.id);
       await Promise.all([comment.save(), post.save()]);
@@ -133,10 +131,8 @@ router.post(
 
     if (!comment) res.sendStatus(404);
     else {
-      const reply = new Comment<IComment>({
-        name: req.body.name,
-        text: req.body.text,
-      });
+      const { name, text } = req.body;
+      const reply = new Comment<IComment>({ name, text });
 
       if (!comment.replies) comment.replies = [];
       comment.replies.push(reply.id);
