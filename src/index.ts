@@ -14,9 +14,17 @@ mongoose.connection.on(
 
 const app = express();
 
+const allowedOrigins: string[] = process.env.ALLOWED_ORIGINS
+  ? JSON.parse(process.env.ALLOWED_ORIGINS)
+  : [];
+
+const options: cors.CorsOptions = {
+  origin: allowedOrigins,
+};
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors(options));
 
 app.use("/api/posts", postsRoute);
 app.use("/api/users", userRoute);
