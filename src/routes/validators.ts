@@ -53,6 +53,10 @@ const validatePostBody = () => [
 ];
 
 const validateRegisterBody = () => [
+  // the secret password required to create an account
+  body("secretPassword").custom(
+    (pass: any) => pass === process.env.SECRET_REGISTER_PASSWORD
+  ),
   body("email")
     .toLowerCase()
     .isEmail()
