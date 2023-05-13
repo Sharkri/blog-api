@@ -4,9 +4,9 @@ import { checkSchema, validationResult } from "express-validator";
 import { Document, isValidObjectId } from "mongoose";
 import multer, { MulterError } from "multer";
 import { verifyTokenAndGetUser } from "../helper/token";
-import Post, { IPost } from "../models/Post";
+import { Post, IPost } from "../models/Post";
 import { getPostValidation } from "./validators";
-import Img, { Image } from "../models/Image";
+import { Image, IImage } from "../models/Image";
 
 const router = Router();
 
@@ -29,7 +29,7 @@ router.get(
   "/",
   asyncHandler(async (req: Request, res: Response) => {
     // possibly can use pagination/infinite scrolling in the future
-    const posts = await Post.find().populate("author").exec();
+    const posts = await Post.find<IPost>().populate("author").exec();
     res.json(posts);
   })
 );
@@ -69,7 +69,7 @@ router.post("/create", [
 
     let img;
     if (req.file) {
-      img = new Img<Image>({
+      img = new Image<IImage>({
         data: req.file.buffer,
         contentType: req.file.mimetype,
       });
@@ -164,7 +164,7 @@ router.get(
     if (!isValidObjectId(req.params.postId)) {
       res.status(400).send("Invalid post id");
     } else {
-      const post = await Post.findById(req.params.postId).exec();
+      const post = await Post.findById<IPost>(req.params.postId).exec();
       res.json(post);
     }
   })

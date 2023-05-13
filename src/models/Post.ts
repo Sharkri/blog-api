@@ -38,5 +38,6 @@ PostSchema.virtual("url").get(function getPostUrl() {
   return `posts/${this.id}`;
 });
 
-export default mongoose.model("Post", PostSchema);
-export { Post as IPost };
+const PostModel = mongoose.model("Post", PostSchema);
+
+export { PostModel as Post, Post as IPost };

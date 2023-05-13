@@ -16,5 +16,6 @@ ImageSchema.virtual("imageUrl").get(function getImageUrl() {
   return `data:${this.contentType};base64,${this.data.toString("base64")}`;
 });
 
-export default mongoose.model("Image", ImageSchema);
-export { Image };
+const ImageModel = mongoose.model("Image", ImageSchema);
+
+export { ImageModel as Image, Image as IImage };

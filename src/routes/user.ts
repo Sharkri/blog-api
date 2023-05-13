@@ -4,8 +4,8 @@ import { validationResult, checkSchema } from "express-validator";
 import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
 import { isValidObjectId } from "mongoose";
-import UserModel, { User } from "../models/User";
-import Img from "../models/Image";
+import { IUser, User } from "../models/User";
+import { Image, IImage } from "../models/Image";
 import { signToken } from "../helper/token";
 import {
   getLoginValidationAndUser,
@@ -67,12 +67,15 @@ router.post("/register", [
     }
 
     const pfp = req.file
-      ? new Img({ data: req.file.buffer, contentType: req.file.mimetype })
+      ? new Image<IImage>({
+          data: req.file.buffer,
+          contentType: req.file.mimetype,
+        })
       : undefined;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new UserModel<User>({
+    const user = new User<IUser>({
       email,
       displayName,
       password: hashedPassword,
@@ -121,7 +124,7 @@ router.get(
       return;
     }
 
-    const user = await UserModel.findById(req.params.userId).exec();
+    const user = await User.findById<IUser>(req.params.userId).exec();
 
     if (!user) {
       res.status(400).send({ message: "User not found" });

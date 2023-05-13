@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { InternalRequest } from "express-validator/src/base";
-import UserModel from "../models/User";
+import { IUser, User } from "../models/User";
 
 const { body } = require("express-validator");
 
@@ -40,7 +40,7 @@ const getUserRegisterValidation = () => [
     .isEmail()
     .withMessage("Invalid email")
     .custom(async (email: string) => {
-      const emailTaken = await UserModel.exists({ email }).exec();
+      const emailTaken = await User.exists({ email }).exec();
       if (emailTaken) return Promise.reject();
 
       return true;
@@ -63,7 +63,7 @@ const getLoginValidationAndUser = () => [
     .withMessage("Invalid email")
     // check if user exists
     .custom(async (email: string, { req }: { req: InternalRequest }) => {
-      const user = await UserModel.findOne({ email }).exec();
+      const user = await User.findOne<IUser>({ email }).exec();
 
       if (!user) return Promise.reject();
       // user exists, set req.user = user

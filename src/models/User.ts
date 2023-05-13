@@ -14,5 +14,5 @@ const UserSchema = new Schema<User>({
   pfp: { type: Schema.Types.ObjectId, ref: "Image" },
 });
 
-export default mongoose.model("User", UserSchema);
-export { User };
+const UserModel = mongoose.model("User", UserSchema);
+export { UserModel as User, User as IUser };
