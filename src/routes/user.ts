@@ -1,16 +1,13 @@
 import { NextFunction, Request, Response, Router } from "express";
 import bcrypt from "bcrypt";
-import { validationResult, checkSchema } from "express-validator";
+import { checkSchema } from "express-validator";
 import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
 import { isValidObjectId } from "mongoose";
 import { IUser, User } from "../models/User";
 import { Image, IImage } from "../models/Image";
 import { signToken } from "../helper/token";
-import {
-  getLoginValidationAndUser,
-  getUserRegisterValidation,
-} from "./validators";
+import { validateLoginAndGetUser, validateRegisterBody } from "./validators";
 
 const router = Router();
 
@@ -53,18 +50,10 @@ router.post("/register", [
     });
   },
 
-  ...getUserRegisterValidation(),
+  ...validateRegisterBody(),
 
   asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-
     const { email, displayName, password } = req.body;
-
-    // if there are any errors
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
 
     const pfp = req.file
       ? new Image<IImage>({
@@ -99,17 +88,11 @@ router.post(
   "/login",
 
   [
-    ...getLoginValidationAndUser(),
+    ...validateLoginAndGetUser(),
 
     asyncHandler(async (req, res) => {
-      const errors = validationResult(req);
-
-      if (!errors.isEmpty()) {
-        res.status(400).json({ errors: errors.array() });
-      } else {
-        const token = await signToken(req.user.toJSON());
-        res.json(token);
-      }
+      const token = await signToken(req.user.toJSON());
+      res.json(token);
     }),
   ]
 );

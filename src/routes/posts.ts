@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response, Router } from "express";
 import asyncHandler from "express-async-handler";
-import { checkSchema, validationResult } from "express-validator";
+import { checkSchema } from "express-validator";
 import { Document, isValidObjectId } from "mongoose";
 import multer, { MulterError } from "multer";
 import { verifyTokenAndGetUser } from "../helper/token";
 import { Post, IPost } from "../models/Post";
-import { getCommentValidation, getPostValidation } from "./validators";
+import { validateCommentBody, validatePostBody } from "./validators";
 import { Image, IImage } from "../models/Image";
 import { Comment, IComment } from "../models/Comment";
 
@@ -57,15 +57,9 @@ router.post("/create", [
     });
   },
 
-  ...getPostValidation(),
+  ...validatePostBody(),
 
   asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
-
     const { title, description, blogContents, topics } = req.body;
 
     let img;
@@ -97,19 +91,13 @@ router.post(
   // checks that jwt token is authenticated and sets req.user
   verifyTokenAndGetUser,
 
-  ...getPostValidation(),
+  ...validatePostBody(),
+
   asyncHandler(async (req, res) => {
     const { postId } = req.params;
 
     if (!isValidObjectId(postId)) {
       res.status(400).send("Invalid post id");
-      return;
-    }
-
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
       return;
     }
 
@@ -161,15 +149,9 @@ router.delete(
 
 router.post(
   "/:postId/comments",
-  ...getCommentValidation(),
+  ...validateCommentBody(),
   asyncHandler(async (req, res) => {
     const { postId } = req.params;
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
 
     if (!isValidObjectId(postId)) {
       res.status(400).send("Invalid post id");
@@ -194,16 +176,10 @@ router.post(
 
 router.post(
   "/:postId/comments/:commentId/replies",
-  ...getCommentValidation(),
+  ...validateCommentBody(),
 
   asyncHandler(async (req, res) => {
     const { commentId } = req.params;
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
-      return;
-    }
 
     if (!isValidObjectId(commentId)) {
       res.status(400).send("Invalid post id");

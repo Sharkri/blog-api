@@ -1,10 +1,26 @@
 import bcrypt from "bcrypt";
 import { InternalRequest } from "express-validator/src/base";
+import { validationResult } from "express-validator";
+import { NextFunction, Request, Response } from "express";
 import { IUser, User } from "../models/User";
 
 const { body } = require("express-validator");
 
-const getPostValidation = () => [
+function handleValidationResult(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    res.status(400).json({ errors: errors.array() });
+  } else {
+    next();
+  }
+}
+
+const validatePostBody = () => [
   body("title")
     .isString()
     .isLength({ min: 1 })
@@ -32,9 +48,11 @@ const getPostValidation = () => [
     .optional()
     .isBoolean()
     .withMessage("isPublished must be a boolean"),
+
+  handleValidationResult,
 ];
 
-const getUserRegisterValidation = () => [
+const validateRegisterBody = () => [
   body("email")
     .toLowerCase()
     .isEmail()
@@ -54,9 +72,11 @@ const getUserRegisterValidation = () => [
     .isString()
     .isLength({ min: 1 })
     .withMessage("Display name is required"),
+
+  handleValidationResult,
 ];
 
-const getLoginValidationAndUser = () => [
+const validateLoginAndGetUser = () => [
   body("email")
     .toLowerCase()
     .isEmail()
@@ -84,9 +104,11 @@ const getLoginValidationAndUser = () => [
       return true;
     })
     .withMessage("Incorrect password"),
+
+  handleValidationResult,
 ];
 
-const getCommentValidation = () => [
+const validateCommentBody = () => [
   body("name")
     .isString()
     .isLength({ min: 1, max: 50 })
@@ -95,11 +117,13 @@ const getCommentValidation = () => [
     .isString()
     .isLength({ min: 1, max: 1500 })
     .withMessage("Text must be between 1-1500 characters long"),
+
+  handleValidationResult,
 ];
 
 export {
-  getPostValidation,
-  getUserRegisterValidation,
-  getLoginValidationAndUser,
-  getCommentValidation,
+  validatePostBody,
+  validateRegisterBody,
+  validateLoginAndGetUser,
+  validateCommentBody,
 };
