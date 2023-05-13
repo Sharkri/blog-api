@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 
 import postsRoute from "./routes/posts";
 import userRoute from "./routes/user";
-import commentsRoute from "./routes/comments";
 
 mongoose.connect(process.env.DATABASE_URI || "your_db_uri");
 mongoose.connection.on(
@@ -21,7 +20,6 @@ app.use(cors());
 
 app.use("/api/posts", postsRoute);
 app.use("/api/users", userRoute);
-app.use("/api/comments", commentsRoute);
 
 app.get("/", (req, res) => {
   res.send("Hello World!");

@@ -8,7 +8,7 @@ interface Post {
   description: string;
   blogContents: string;
   topics?: string[];
-  comments?: mongoose.Types.ObjectId[];
+  comments: mongoose.Types.ObjectId[];
   isPublished?: boolean;
   image: mongoose.Types.ObjectId;
   _id: mongoose.Types.ObjectId;

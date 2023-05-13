@@ -5,8 +5,9 @@ import { Document, isValidObjectId } from "mongoose";
 import multer, { MulterError } from "multer";
 import { verifyTokenAndGetUser } from "../helper/token";
 import { Post, IPost } from "../models/Post";
-import { getPostValidation } from "./validators";
+import { getCommentValidation, getPostValidation } from "./validators";
 import { Image, IImage } from "../models/Image";
+import { Comment, IComment } from "../models/Comment";
 
 const router = Router();
 
@@ -156,8 +157,82 @@ router.delete(
   })
 );
 
+// --- CREATE COMMENT ROUTE --- //
+
+router.post(
+  "/:postId/comments",
+  ...getCommentValidation(),
+  asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
+
+    if (!isValidObjectId(postId)) {
+      res.status(400).send("Invalid post id");
+      return;
+    }
+
+    const post = await Post.findById<IPost & Document>(postId).exec();
+
+    if (!post) res.sendStatus(404);
+    else {
+      const comment = new Comment<IComment>({
+        name: req.body.name,
+        text: req.body.text,
+      });
+
+      post.comments.push(comment.id);
+      await Promise.all([comment.save(), post.save()]);
+      res.json(comment);
+    }
+  })
+);
+
+router.post(
+  "/:postId/comments/:commentId/replies",
+  ...getCommentValidation(),
+
+  asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
+
+    if (!isValidObjectId(commentId)) {
+      res.status(400).send("Invalid post id");
+      return;
+    }
+
+    const comment = await Comment.findById<IComment & Document>(
+      commentId
+    ).exec();
+
+    if (!comment) res.sendStatus(404);
+    else {
+      const reply = new Comment<IComment>({
+        name: req.body.name,
+        text: req.body.text,
+      });
+
+      if (!comment.replies) comment.replies = [];
+      comment.replies.push(reply.id);
+
+      await Promise.all([comment.save(), reply.save()]);
+      res.json(reply);
+    }
+  })
+);
+
 // --- GET POST ROUTE --- //
 
+// Note: It is important that this is the last route, or else it may override other routes e.g. "/:postId/comments"
 router.get(
   "/:postId",
   asyncHandler(async (req: Request, res: Response) => {
