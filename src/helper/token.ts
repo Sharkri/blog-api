@@ -33,6 +33,11 @@ function verifyTokenAndGetUser(
         res.status(403).json(err);
         return;
       }
+      if (userData.role !== "admin") {
+        res.status(403).json({ message: "Unauthorized" });
+        return;
+      }
+
       // Set the user object
       req.user = userData;
       next();

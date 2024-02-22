@@ -5,6 +5,7 @@ interface User {
   password: string;
   displayName: string;
   pfp: Types.ObjectId;
+  role: "user" | "admin";
 }
 
 const UserSchema = new Schema<User>({
@@ -12,6 +13,7 @@ const UserSchema = new Schema<User>({
   password: { type: String, required: true },
   displayName: { type: String, required: true },
   pfp: { type: Schema.Types.ObjectId, ref: "Image" },
+  role: ["user", "admin"],
 });
 
 const UserModel = mongoose.model("User", UserSchema);
