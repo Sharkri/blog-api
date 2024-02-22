@@ -69,6 +69,7 @@ router.post("/register", [
       displayName,
       password: hashedPassword,
       pfp: pfp?.id,
+      role: "user",
     });
 
     // since order does not matter, do all at once.
