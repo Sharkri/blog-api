@@ -3,7 +3,7 @@ import asyncHandler from "express-async-handler";
 import { checkSchema } from "express-validator";
 import { Document, isValidObjectId } from "mongoose";
 import multer, { MulterError } from "multer";
-import { verifyTokenAndGetUser } from "../helper/token";
+import { getUser } from "../helper/token";
 import { Post, IPost } from "../models/Post";
 import { validateCommentBody, validatePostBody } from "./validators";
 import { Image, IImage } from "../models/Image";
@@ -26,11 +26,20 @@ const upload = multer({
 });
 const uploadImg = upload.single("image");
 
+const onlyAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user || req.user.role !== "admin") res.sendStatus(403);
+  else next();
+};
+
 router.get(
   "/",
+  getUser,
   asyncHandler(async (req: Request, res: Response) => {
+    const isAdmin = req.user && req.user.role === "admin";
+    const query = isAdmin ? {} : { isPublished: true };
+
     // possibly can use pagination/infinite scrolling in the future
-    const posts = await Post.find<IPost>().populate("author").exec();
+    const posts = await Post.find(query).populate("author");
     res.json(posts);
   })
 );
@@ -38,8 +47,8 @@ router.get(
 // --- CREATE POST ROUTE --- //
 
 router.post("/", [
-  verifyTokenAndGetUser,
-
+  getUser,
+  onlyAdmin,
   // upload pfp using multer and handle errors if present
   async (req: Request, res: Response, next: NextFunction) => {
     uploadImg(req, res, async (err) => {
@@ -148,7 +157,8 @@ router.post(
 router.put(
   "/:postId",
   // checks that jwt token is authenticated and sets req.user
-  verifyTokenAndGetUser,
+  getUser,
+  onlyAdmin,
   ...validatePostBody(),
 
   asyncHandler(async (req, res) => {
@@ -186,7 +196,8 @@ router.put(
 
 router.delete(
   "/:postId",
-  verifyTokenAndGetUser,
+  getUser,
+  onlyAdmin,
 
   asyncHandler(async (req, res) => {
     const { postId } = req.params;
@@ -203,17 +214,24 @@ router.delete(
   })
 );
 
-// --- GET POST ROUTE --- //
+// --- GET SINGLE POST ROUTE --- //
 
 // Note: It is important that this is the last route, or else it may override other routes e.g. "/:postId/comments"
 router.get(
   "/:postId",
+  getUser,
   asyncHandler(async (req: Request, res: Response) => {
     if (!isValidObjectId(req.params.postId)) {
       res.status(400).send("Invalid post id");
     } else {
       const post = await Post.findById<IPost>(req.params.postId).exec();
-      res.json(post);
+      const isUnpublished = post && !post.isPublished;
+      // only allow admin to see unpublished
+      if (isUnpublished && req.user?.role !== "admin") {
+        res.sendStatus(403);
+      } else {
+        res.json(post);
+      }
     }
   })
 );

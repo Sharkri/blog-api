@@ -3,14 +3,9 @@ import jwt, { VerifyErrors } from "jsonwebtoken";
 import { User } from "../models/User";
 
 // Verifies token and then sets req.user to the user
-function verifyTokenAndGetUser(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  if (!process.env.JWT_SECRET) {
+function getUser(req: Request, res: Response, next: NextFunction) {
+  if (!process.env.JWT_SECRET)
     throw new Error("JWT secret not found in .env file");
-  }
 
   const bearerHeader = req.headers.authorization;
   if (bearerHeader == null) {
@@ -20,9 +15,13 @@ function verifyTokenAndGetUser(
 
   // Get the second value from the split string "Bearer <access_token>"
   const [, bearerToken] = bearerHeader.split(" ");
-
   // Set the token
   req.token = bearerToken;
+  if (!req.token) {
+    req.user = null;
+    next();
+    return;
+  }
 
   // Verify token
   jwt.verify(
@@ -33,18 +32,11 @@ function verifyTokenAndGetUser(
         res.status(403).json(err);
         return;
       }
-
       const user = await User.findById(userData.id, "-password");
       if (!user) {
         res.sendStatus(403);
         return;
       }
-
-      if (user.role !== "admin") {
-        res.json(user);
-        return;
-      }
-
       // Set the user object
       req.user = user;
       next();
@@ -57,7 +49,6 @@ const signToken = async (payload: object) =>
     if (typeof process.env.JWT_SECRET !== "string") {
       throw new Error("JWT secret must be specified in .env file");
     }
-
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
@@ -69,4 +60,4 @@ const signToken = async (payload: object) =>
     );
   });
 
-export { verifyTokenAndGetUser, signToken };
+export { getUser, signToken };

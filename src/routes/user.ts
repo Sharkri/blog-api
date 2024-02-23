@@ -5,7 +5,7 @@ import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
 import { IUser, User } from "../models/User";
 import { Image, IImage } from "../models/Image";
-import { signToken, verifyTokenAndGetUser } from "../helper/token";
+import { signToken, getUser } from "../helper/token";
 import { validateLoginAndGetUser, validateRegisterBody } from "./validators";
 
 const router = Router();
@@ -98,7 +98,7 @@ router.post(
 
 // --- GET USER BY TOKEN ROUTE --- //
 router.get("/", [
-  verifyTokenAndGetUser,
+  getUser,
   asyncHandler(async (req, res) => {
     res.json(req.user);
   }),
