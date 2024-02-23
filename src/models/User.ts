@@ -13,7 +13,12 @@ const UserSchema = new Schema<User>({
   password: { type: String, required: true },
   displayName: { type: String, required: true },
   pfp: { type: Schema.Types.ObjectId, ref: "Image" },
-  role: ["user", "admin"],
+  role: {
+    type: String,
+    required: true,
+    enum: ["user", "admin"], // This line ensures the role can only be 'user' or 'admin'
+    default: "user",
+  },
 });
 
 const UserModel = mongoose.model("User", UserSchema);

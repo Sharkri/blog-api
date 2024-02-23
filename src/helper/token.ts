@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { VerifyErrors } from "jsonwebtoken";
+import { User } from "../models/User";
 
 // Verifies token and then sets req.user to the user
 function verifyTokenAndGetUser(
@@ -12,7 +13,6 @@ function verifyTokenAndGetUser(
   }
 
   const bearerHeader = req.headers.authorization;
-
   if (bearerHeader == null) {
     res.status(403).send("No authorization header provided");
     return;
@@ -28,18 +28,25 @@ function verifyTokenAndGetUser(
   jwt.verify(
     req.token,
     process.env.JWT_SECRET,
-    (err: VerifyErrors | null, userData: any) => {
+    async (err: VerifyErrors | null, userData: any) => {
       if (err) {
         res.status(403).json(err);
         return;
       }
-      if (userData.role !== "admin") {
-        res.status(403).json({ message: "Unauthorized" });
+
+      const user = await User.findById(userData.id, "-password");
+      if (!user) {
+        res.sendStatus(403);
+        return;
+      }
+
+      if (user.role !== "admin") {
+        res.json(user);
         return;
       }
 
       // Set the user object
-      req.user = userData;
+      req.user = user;
       next();
     }
   );

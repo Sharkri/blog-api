@@ -3,10 +3,9 @@ import bcrypt from "bcrypt";
 import { checkSchema } from "express-validator";
 import asyncHandler from "express-async-handler";
 import multer, { MulterError } from "multer";
-import { isValidObjectId } from "mongoose";
 import { IUser, User } from "../models/User";
 import { Image, IImage } from "../models/Image";
-import { signToken } from "../helper/token";
+import { signToken, verifyTokenAndGetUser } from "../helper/token";
 import { validateLoginAndGetUser, validateRegisterBody } from "./validators";
 
 const router = Router();
@@ -74,7 +73,7 @@ router.post("/register", [
 
     // since order does not matter, do all at once.
     const [token] = await Promise.all([
-      signToken(user.toJSON()),
+      signToken({ id: user.id }),
       pfp?.save(),
       user.save(),
     ]);
@@ -90,32 +89,14 @@ router.post(
 
   [
     ...validateLoginAndGetUser(),
-
     asyncHandler(async (req, res) => {
-      const token = await signToken(req.user.toJSON());
+      const token = await signToken({ id: req.user.id });
       res.json(token);
     }),
   ]
 );
 
-// --- GET USER BY ID ROUTE --- //
-
-router.get(
-  "/:userId",
-  asyncHandler(async (req, res) => {
-    if (!isValidObjectId(req.params.userId)) {
-      res.status(400).send({ message: "Invalid user id" });
-      return;
-    }
-
-    const user = await User.findById<IUser>(req.params.userId).exec();
-
-    if (!user) {
-      res.status(400).send({ message: "User not found" });
-    } else {
-      res.json(user);
-    }
-  })
-);
+// --- GET USER BY TOKEN ROUTE --- //
+router.get("/", [verifyTokenAndGetUser, asyncHandler(async (req) => req.user)]);
 
 export default router;
