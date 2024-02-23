@@ -97,6 +97,11 @@ router.post(
 );
 
 // --- GET USER BY TOKEN ROUTE --- //
-router.get("/", [verifyTokenAndGetUser, asyncHandler(async (req) => req.user)]);
+router.get("/", [
+  verifyTokenAndGetUser,
+  asyncHandler(async (req, res) => {
+    res.json(req.user);
+  }),
+]);
 
 export default router;
