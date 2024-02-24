@@ -39,7 +39,7 @@ router.get(
     const query = isAdmin ? {} : { isPublished: true };
 
     // possibly can use pagination/infinite scrolling in the future
-    const posts = await Post.find(query).populate("author");
+    const posts = await Post.find(query).populate("author image");
     res.json(posts);
   })
 );
@@ -206,7 +206,6 @@ router.delete(
 
     if (!isValidObjectId(postId)) res.status(400).send("Invalid post id");
     else if (post == null) res.status(404).send("404: Post not found");
-    else if (!post.author.equals(req.user._id)) res.sendStatus(403);
     else {
       await Post.findByIdAndDelete(postId).exec();
       res.json(post);
