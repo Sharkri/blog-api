@@ -172,13 +172,11 @@ router.put(
     const post = await Post.findById<IPost & Document>(postId, "author").exec();
 
     if (post == null) res.status(404).send("404: Post not found");
-    else if (!post.author.equals(req.user._id)) res.sendStatus(403);
     else {
       const { title, description, blogContents, topics, isPublished } =
         req.body;
 
       post.set({
-        author: req.user._id,
         title,
         description,
         blogContents,
