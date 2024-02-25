@@ -221,7 +221,9 @@ router.get(
     if (!isValidObjectId(req.params.postId)) {
       res.status(400).send("Invalid post id");
     } else {
-      const post = await Post.findById<IPost>(req.params.postId).exec();
+      const post = await Post.findById<IPost>(req.params.postId).populate(
+        "author image"
+      );
       const isUnpublished = post && !post.isPublished;
       // only allow admin to see unpublished
       if (isUnpublished && req.user?.role !== "admin") {
