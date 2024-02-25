@@ -24,7 +24,23 @@ const upload = multer({
     }
   },
 });
-const uploadImg = upload.single("image");
+// upload image using multer and handle errors if present
+const uploadImage = async (req: Request, res: Response, next: NextFunction) => {
+  const uploadSingle = upload.single("image");
+  uploadSingle(req, res, async (err) => {
+    // if is not a multer error
+    if (!(err instanceof MulterError)) {
+      next(err);
+      return;
+    }
+
+    // Map multer error to express-validator error
+    await checkSchema({
+      image: { custom: { errorMessage: err.message } },
+    }).run(req);
+    next();
+  });
+};
 
 const onlyAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user || req.user.role !== "admin") res.sendStatus(403);
@@ -49,22 +65,7 @@ router.get(
 router.post("/", [
   getUser,
   onlyAdmin,
-  // upload pfp using multer and handle errors if present
-  async (req: Request, res: Response, next: NextFunction) => {
-    uploadImg(req, res, async (err) => {
-      // if is not a multer error
-      if (!(err instanceof MulterError)) {
-        next(err);
-        return;
-      }
-
-      // Map multer error to express-validator error
-      await checkSchema({
-        image: { custom: { errorMessage: err.message } },
-      }).run(req);
-      next();
-    });
-  },
+  uploadImage,
 
   ...validatePostBody(),
 
@@ -157,20 +158,27 @@ router.post(
 router.put(
   "/:postId",
   // checks that jwt token is authenticated and sets req.user
+  uploadImage,
   getUser,
   onlyAdmin,
   ...validatePostBody(),
 
   asyncHandler(async (req, res) => {
     const { postId } = req.params;
-
     if (!isValidObjectId(postId)) {
       res.status(400).send("Invalid post id");
       return;
     }
 
-    const post = await Post.findById<IPost & Document>(postId, "author").exec();
+    let img;
+    if (req.file) {
+      img = new Image<IImage>({
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+      });
+    }
 
+    const post = await Post.findById<IPost & Document>(postId);
     if (post == null) res.status(404).send("404: Post not found");
     else {
       const { title, description, blogContents, topics, isPublished } =
@@ -182,9 +190,10 @@ router.put(
         blogContents,
         topics,
         isPublished,
+        ...(img && { image: img.id }),
       });
 
-      await post.save();
+      await Promise.all([img?.save(), post.save()]);
       res.json(post);
     }
   })

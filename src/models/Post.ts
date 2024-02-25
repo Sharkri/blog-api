@@ -10,7 +10,7 @@ interface Post {
   topics?: string[];
   comments: mongoose.Types.ObjectId[];
   isPublished?: boolean;
-  image: mongoose.Types.ObjectId;
+  image?: mongoose.Types.ObjectId;
   _id: mongoose.Types.ObjectId;
 }
 
