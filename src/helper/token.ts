@@ -28,7 +28,9 @@ function getUser(req: Request, res: Response, next: NextFunction) {
         res.status(403).json(err);
         return;
       }
-      const user = await User.findById(userData.id, "-password");
+      const user = await User.findById(userData.id, "-password").populate(
+        "pfp"
+      );
       if (!user) {
         res.sendStatus(403);
         return;
