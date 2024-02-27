@@ -25,10 +25,6 @@ const validatePostBody = () => [
     .isString()
     .isLength({ min: 1 })
     .withMessage("Title is required"),
-  body("description")
-    .isString()
-    .isLength({ min: 1 })
-    .withMessage("Description is required"),
   body("blogContents")
     .isString()
     .isLength({ min: 1 })

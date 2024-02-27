@@ -1,46 +1,12 @@
 import { NextFunction, Request, Response, Router } from "express";
 import asyncHandler from "express-async-handler";
-import { checkSchema } from "express-validator";
 import { Document, isValidObjectId } from "mongoose";
-import multer, { MulterError } from "multer";
 import { getUser } from "../helper/token";
 import { Post, IPost } from "../models/Post";
 import { validateCommentBody, validatePostBody } from "./validators";
-import { Image, IImage } from "../models/Image";
 import { Comment, IComment } from "../models/Comment";
 
 const router = Router();
-
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: { fileSize: 5242880 }, // 5mb
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) cb(null, true);
-    else {
-      const error = new MulterError("LIMIT_UNEXPECTED_FILE", "pfp");
-      error.message = "File format should be an image";
-      cb(error);
-    }
-  },
-});
-// upload image using multer and handle errors if present
-const uploadImage = async (req: Request, res: Response, next: NextFunction) => {
-  const uploadSingle = upload.single("image");
-  uploadSingle(req, res, async (err) => {
-    // if is not a multer error
-    if (!(err instanceof MulterError)) {
-      next(err);
-      return;
-    }
-
-    // Map multer error to express-validator error
-    await checkSchema({
-      image: { custom: { errorMessage: err.message } },
-    }).run(req);
-    next();
-  });
-};
 
 const onlyAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user || req.user.role !== "admin") res.sendStatus(403);
@@ -57,7 +23,7 @@ router.get(
     // possibly can use pagination/infinite scrolling in the future
     const posts = await Post.find(query)
       .sort({ createdAt: "desc" })
-      .populate("author image");
+      .populate("author");
     res.json(posts);
   })
 );
@@ -67,31 +33,20 @@ router.get(
 router.post("/", [
   getUser,
   onlyAdmin,
-  uploadImage,
 
   ...validatePostBody(),
 
   asyncHandler(async (req: Request, res: Response) => {
-    const { title, description, blogContents, topics } = req.body;
-
-    let img;
-    if (req.file) {
-      img = new Image<IImage>({
-        data: req.file.buffer,
-        contentType: req.file.mimetype,
-      });
-    }
+    const { title, blogContents, topics } = req.body;
 
     const post = new Post({
       author: req.user._id,
       title,
-      description,
       blogContents,
       topics,
-      image: img?.id,
     });
 
-    await Promise.all([img?.save(), post.save()]);
+    await post.save();
     res.json(post);
   }),
 ]);
@@ -160,7 +115,6 @@ router.post(
 router.put(
   "/:postId",
   // checks that jwt token is authenticated and sets req.user
-  uploadImage,
   getUser,
   onlyAdmin,
   ...validatePostBody(),
@@ -172,30 +126,12 @@ router.put(
       return;
     }
 
-    let img;
-    if (req.file) {
-      img = new Image<IImage>({
-        data: req.file.buffer,
-        contentType: req.file.mimetype,
-      });
-    }
-
     const post = await Post.findById<IPost & Document>(postId);
     if (post == null) res.status(404).send("404: Post not found");
     else {
-      const { title, description, blogContents, topics, isPublished } =
-        req.body;
-
-      post.set({
-        title,
-        description,
-        blogContents,
-        topics,
-        isPublished,
-        ...(img && { image: img.id }),
-      });
-
-      await Promise.all([img?.save(), post.save()]);
+      const { title, blogContents, topics, isPublished } = req.body;
+      post.set({ title, blogContents, topics, isPublished });
+      await post.save();
       res.json(post);
     }
   })
@@ -233,7 +169,7 @@ router.get(
       res.status(400).send("Invalid post id");
     } else {
       const post = await Post.findById<IPost>(req.params.postId).populate(
-        "author image"
+        "author"
       );
       const isUnpublished = post && !post.isPublished;
       // only allow admin to see unpublished
