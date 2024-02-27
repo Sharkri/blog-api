@@ -55,7 +55,9 @@ router.get(
     const query = isAdmin ? {} : { isPublished: true };
 
     // possibly can use pagination/infinite scrolling in the future
-    const posts = await Post.find(query).populate("author image");
+    const posts = await Post.find(query)
+      .sort({ createdAt: "desc" })
+      .populate("author image");
     res.json(posts);
   })
 );
