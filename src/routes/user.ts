@@ -6,7 +6,11 @@ import multer, { MulterError } from "multer";
 import { IUser, User } from "../models/User";
 import { Image, IImage } from "../models/Image";
 import { signToken, getUser } from "../helper/token";
-import { validateLoginAndGetUser, validateRegisterBody } from "./validators";
+import {
+  validateLoginAndGetUser,
+  validateRegisterBody,
+  validateUpdateUserBody,
+} from "./validators";
 
 const router = Router();
 
@@ -26,31 +30,24 @@ const upload = multer({
   },
 });
 
+async function uploadPfp(req: Request, res: Response, next: NextFunction) {
+  const uploadFn = upload.single("pfp");
+  uploadFn(req, res, async (err) => {
+    if (!(err instanceof MulterError)) next(err);
+    else {
+      await checkSchema({
+        pfp: { custom: { errorMessage: err.message } },
+      }).run(req);
+      next();
+    }
+  });
+}
+
 // --- REGISTER USER ROUTE --- //
 
 router.post("/register", [
-  // upload pfp using multer and handle errors if present
-  async function uploadPfp(req: Request, res: Response, next: NextFunction) {
-    const uploadFn = upload.single("pfp");
-
-    uploadFn(req, res, async (err) => {
-      if (!(err instanceof MulterError)) {
-        next(err);
-        return;
-      }
-
-      // Map multer error to express-validator error
-      await checkSchema({
-        pfp: {
-          custom: { errorMessage: err.message },
-        },
-      }).run(req);
-      next();
-    });
-  },
-
+  uploadPfp,
   ...validateRegisterBody(),
-
   asyncHandler(async (req, res) => {
     const { email, displayName, password } = req.body;
 
@@ -96,11 +93,51 @@ router.post(
   ]
 );
 
+// --- UPDATE USER ROUTE --- //
+
+router.put("/", [
+  getUser,
+  // if no user then send unauthorized status
+  (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) res.sendStatus(403);
+    else next();
+  },
+
+  uploadPfp,
+  ...validateUpdateUserBody(),
+  asyncHandler(async (req, res) => {
+    const { displayName, oldPassword, newPassword } = req.body;
+    const pfp = req.file
+      ? new Image<IImage>({
+          data: req.file.buffer,
+          contentType: req.file.mimetype,
+        })
+      : undefined;
+
+    const newUserData: Partial<IUser> = {};
+    // conditionally add updated values if they are present
+    if (displayName) newUserData.displayName = displayName;
+    if (oldPassword && newPassword) {
+      // Note: we already checked if passwords match in the validation middleware
+      newUserData.password = await bcrypt.hash(newPassword, 10);
+    }
+    if (pfp) newUserData.pfp = pfp.id;
+    // if req.file was explicity set to null, then remove pfp
+    else if (req.body.pfp === "null") newUserData.pfp = undefined;
+
+    req.user.set(newUserData);
+
+    await Promise.all([pfp?.save(), req.user.save()]);
+
+    res.sendStatus(200);
+  }),
+]);
+
 // --- GET USER BY TOKEN ROUTE --- //
 router.get("/", [
   getUser,
   asyncHandler(async (req, res) => {
-    res.json(req.user);
+    res.json({ ...req.user.toJSON(), password: "" });
   }),
 ]);
 

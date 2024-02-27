@@ -76,6 +76,30 @@ const validateRegisterBody = () => [
   handleValidationResult,
 ];
 
+const validateUpdateUserBody = () => [
+  body("oldPassword")
+    .optional()
+    .isString()
+    .custom(async (password: string, { req }: { req: InternalRequest }) => {
+      const isSamePass = await bcrypt.compare(password, req.user.password);
+      if (!isSamePass) return Promise.reject();
+      return true;
+    })
+    .withMessage("Incorrect password"),
+  body("newPassword")
+    .optional()
+    .isString()
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters"),
+  body("displayName")
+    .optional()
+    .isString()
+    .isLength({ min: 1 })
+    .withMessage("Display name is required"),
+
+  handleValidationResult,
+];
+
 const validateLoginAndGetUser = () => [
   body("email")
     .toLowerCase()
@@ -126,4 +150,5 @@ export {
   validateRegisterBody,
   validateLoginAndGetUser,
   validateCommentBody,
+  validateUpdateUserBody,
 };
