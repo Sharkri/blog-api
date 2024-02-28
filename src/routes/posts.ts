@@ -214,10 +214,9 @@ router.get(
     if (!isValidObjectId(req.params.postId)) {
       res.status(400).send("Invalid post id");
     } else {
-      const post = await Post.findById<IPost>(req.params.postId).populate(
-        "author comments",
-        "-password"
-      );
+      const post = await Post.findById<IPost>(req.params.postId)
+        .populate("author", "-password")
+        .populate({ path: "comments", options: { sort: { createdAt: -1 } } });
       const isUnpublished = post && !post.isPublished;
       // only allow admin to see unpublished
       if (isUnpublished && req.user?.role !== "admin") res.sendStatus(403);
