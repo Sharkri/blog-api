@@ -5,6 +5,7 @@ import { getUser } from "../helper/token";
 import { Post, IPost } from "../models/Post";
 import { validateCommentBody, validatePostBody } from "./validators";
 import { Comment, IComment } from "../models/Comment";
+import generateUsername from "../helper/random-username";
 
 const router = Router();
 
@@ -68,8 +69,14 @@ router.post(
 
     if (!post) res.sendStatus(404);
     else {
-      const { name, text } = req.body;
+      const { text } = req.body;
       const { clientIp } = req;
+
+      let name;
+      const clientIpComment = await Comment.findOne({ clientIp }, "name");
+      if (clientIpComment) name = clientIpComment.name;
+      else name = generateUsername();
+
       const comment = new Comment<IComment>({
         name,
         text,
@@ -131,8 +138,13 @@ router.post(
 
     if (!comment) res.sendStatus(404);
     else {
-      const { name, text } = req.body;
+      const { text } = req.body;
       const { clientIp } = req;
+      let name;
+      const clientIpComment = await Comment.findOne({ clientIp }, "name");
+      if (clientIpComment) name = clientIpComment.name;
+      else name = generateUsername();
+
       const reply = new Comment<IComment>({ name, text, clientIp });
 
       if (!comment.replies) comment.replies = [];

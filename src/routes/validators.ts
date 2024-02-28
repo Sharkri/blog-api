@@ -129,15 +129,10 @@ const validateLoginAndGetUser = () => [
 ];
 
 const validateCommentBody = () => [
-  body("name")
-    .isString()
-    .isLength({ min: 1, max: 50 })
-    .withMessage("Name must be between 1-50 characters long"),
   body("text")
     .isString()
     .isLength({ min: 1, max: 1500 })
     .withMessage("Text must be between 1-1500 characters long"),
-
   handleValidationResult,
 ];
 
