@@ -203,7 +203,8 @@ router.get(
       res.status(400).send("Invalid post id");
     } else {
       const post = await Post.findById<IPost>(req.params.postId).populate(
-        "author"
+        "author",
+        "-password"
       );
       const isUnpublished = post && !post.isPublished;
       // only allow admin to see unpublished
