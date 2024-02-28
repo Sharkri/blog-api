@@ -23,7 +23,7 @@ router.get(
     // possibly can use pagination/infinite scrolling in the future
     const posts = await Post.find(query)
       .sort({ createdAt: "desc" })
-      .populate("author");
+      .populate("author", "-password");
     res.json(posts);
   })
 );
@@ -69,7 +69,12 @@ router.post(
     if (!post) res.sendStatus(404);
     else {
       const { name, text } = req.body;
-      const comment = new Comment<IComment>({ name, text });
+      const { clientIp } = req;
+      const comment = new Comment<IComment>({
+        name,
+        text,
+        clientIp,
+      });
 
       post.comments.push(comment.id);
       await Promise.all([comment.save(), post.save()]);
@@ -78,10 +83,40 @@ router.post(
   })
 );
 
+// --- DELETE COMMENT ROUTE --- //
+
+router.delete(
+  "/:postId/comments/:commentId",
+  asyncHandler(async (req, res) => {
+    const { postId, commentId } = req.params;
+    if (!isValidObjectId(postId) || !isValidObjectId(commentId)) {
+      res.status(400).send("Invalid post/comment id");
+      return;
+    }
+    const post = await Post.findById<IPost & Document>(postId);
+    if (!post) {
+      res.sendStatus(404);
+      return;
+    }
+
+    const comment = await Comment.findById<IComment & Document>(commentId);
+    if (!comment) res.sendStatus(404);
+    else {
+      const isSameIp = comment.clientIp === req.clientIp;
+      if (!isSameIp) res.sendStatus(403);
+
+      // delete comment from db and remove reference to comment from post
+      post.comments = post.comments.filter((c) => c.id === comment.id);
+      await Promise.all([post.save(), comment.deleteOne()]);
+      res.json(comment);
+    }
+  })
+);
+
 // --- CREATE REPLY ROUTE --- //
 
 router.post(
-  "/:postId/comments/:commentId/replies",
+  "/:postId/comments/:commentId/reply",
   ...validateCommentBody(),
 
   asyncHandler(async (req, res) => {
@@ -92,14 +127,13 @@ router.post(
       return;
     }
 
-    const comment = await Comment.findById<IComment & Document>(
-      commentId
-    ).exec();
+    const comment = await Comment.findById<IComment & Document>(commentId);
 
     if (!comment) res.sendStatus(404);
     else {
       const { name, text } = req.body;
-      const reply = new Comment<IComment>({ name, text });
+      const { clientIp } = req;
+      const reply = new Comment<IComment>({ name, text, clientIp });
 
       if (!comment.replies) comment.replies = [];
       comment.replies.push(reply.id);

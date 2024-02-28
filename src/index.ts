@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 import rateLimit from "express-rate-limit";
+import requestIp from "request-ip";
 
 import postsRoute from "./routes/posts";
 import userRoute from "./routes/user";
@@ -32,6 +33,7 @@ app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(options));
+app.use(requestIp.mw());
 
 app.use("/api/posts", postsRoute);
 app.use("/api/users", userRoute);
