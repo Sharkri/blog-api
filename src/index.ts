@@ -2,6 +2,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
+import rateLimit from "express-rate-limit";
 
 import postsRoute from "./routes/posts";
 import userRoute from "./routes/user";
@@ -22,6 +23,12 @@ const options: cors.CorsOptions = {
   origin: allowedOrigins,
 };
 
+const limiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 500, // limit each IP to 100 requests per windowMs
+});
+
+app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(options));
