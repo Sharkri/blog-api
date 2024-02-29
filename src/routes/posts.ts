@@ -216,7 +216,10 @@ router.get(
     } else {
       const post = await Post.findById<IPost>(req.params.postId)
         .populate("author", "-password")
-        .populate({ path: "comments", options: { sort: { createdAt: -1 } } });
+        .populate({
+          path: "comments",
+          options: { sort: { createdAt: "desc" } },
+        });
       const isUnpublished = post && !post.isPublished;
       // only allow admin to see unpublished
       if (isUnpublished && req.user?.role !== "admin") res.sendStatus(403);
