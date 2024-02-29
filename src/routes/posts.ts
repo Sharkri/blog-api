@@ -105,17 +105,24 @@ router.delete(
       res.sendStatus(404);
       return;
     }
+    const commentToDelete = await Comment.findById<IComment & Document>(
+      commentId
+    );
+    if (!commentToDelete) {
+      res.sendStatus(404);
+      return;
+    }
 
-    const comment = await Comment.findById<IComment & Document>(commentId);
-    if (!comment) res.sendStatus(404);
-    else {
-      const isSameIp = comment.clientIp === req.clientIp;
-      if (!isSameIp) res.sendStatus(403);
-
+    const isSameIp = commentToDelete.clientIp === req.clientIp;
+    if (isSameIp) {
       // delete comment from db and remove reference to comment from post
-      post.comments = post.comments.filter((c) => c.id === comment.id);
-      await Promise.all([post.save(), comment.deleteOne()]);
-      res.json(comment);
+      post.comments = post.comments.filter(
+        (comment) => !comment._id.equals(commentToDelete.id)
+      );
+      await Promise.all([post.save(), commentToDelete.deleteOne()]);
+      res.json(commentToDelete);
+    } else {
+      res.sendStatus(403);
     }
   })
 );
