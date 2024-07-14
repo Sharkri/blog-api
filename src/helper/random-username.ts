@@ -1,13 +1,17 @@
-import { adjectives, nouns } from "./word-sets";
-
-const capitalize = (string: string) =>
-  string.charAt(0).toUpperCase() + string.slice(1);
-
-const getRandomItem = (items: string[]) =>
-  items[Math.floor(Math.random() * items.length)];
+import {
+  adjectives,
+  animals,
+  colors,
+  uniqueNamesGenerator,
+} from "unique-names-generator";
 
 export default function generateUsername() {
-  const noun = capitalize(getRandomItem(nouns));
-  const adjective = capitalize(getRandomItem(adjectives));
-  return `${noun} ${adjective}`;
+  const randomName = uniqueNamesGenerator({
+    dictionaries: [adjectives, colors, animals],
+    separator: " ",
+    length: 3,
+    style: "capital",
+  }); // Hasty Beige Fox
+
+  return randomName;
 }
