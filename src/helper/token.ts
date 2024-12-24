@@ -8,8 +8,8 @@ function getUser(req: Request, res: Response, next: NextFunction) {
     throw new Error("JWT secret not found in .env file");
 
   const bearerHeader = req.headers.authorization;
-  // Get the second value from the split string "Bearer <access_token>"
 
+  // Get the second value from the split string "Bearer <access_token>"
   const [, bearerToken] = (bearerHeader || "").split(" ");
   req.token = bearerToken;
   // if no token then set req.user to null go to next()

@@ -29,6 +29,21 @@ router.get(
   })
 );
 
+router.get(
+  "/preview",
+  getUser,
+  asyncHandler(async (req: Request, res: Response) => {
+    const isAdmin = req.user && req.user.role === "admin";
+    const query = isAdmin ? {} : { isPublished: true };
+
+    // possibly can use pagination/infinite scrolling in the future
+    const posts = await Post.find(query, "title createdAt").sort({
+      createdAt: "desc",
+    });
+    res.json(posts);
+  })
+);
+
 // --- CREATE POST ROUTE --- //
 
 router.post("/", [
